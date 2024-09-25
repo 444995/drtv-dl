@@ -27,9 +27,6 @@ class InfoExtractor:
     }
 
     def __init__(self):
-        self._TOKEN = self._get_anon_token()
-
-    def _get_anon_token(self):
         anon_token_response = requests.post(
             url=self.ANONYMOUS_SSO_URL,
             params=self.ANONYMOUS_SSO_PARAMS,
@@ -42,10 +39,9 @@ class InfoExtractor:
         )
         anon_token_response.raise_for_status()
         anon_token_json = anon_token_response.json()
-        token = next((entry['value'] for entry in anon_token_json if entry['type'] == 'UserAccount'), None)
-        if not token:
+        self._TOKEN = next((entry['value'] for entry in anon_token_json if entry['type'] == 'UserAccount'), None)
+        if not self._TOKEN:
             raise Exception("Couldn't retrieve anonymous token")
-        return token
 
     def extract(self, url):
         _, item_id = extract_ids_from_url(url)
@@ -81,7 +77,6 @@ class InfoExtractor:
         stream_data = stream_response.json()
 
         formats = []
-        subtitles = {}
         for stream in stream_data:
             stream_url = stream.get('url', None)
             if not stream_url:
@@ -90,11 +85,9 @@ class InfoExtractor:
             format_id = stream.get('format', 'na')
             access_service = stream.get('accessService')
             preference = None
-            subtitle_suffix = ''
             if access_service in ('SpokenSubtitles', 'SignLanguage', 'VisuallyInterpreted'):
                 preference = -1
                 format_id += f'-{access_service}'
-                subtitle_suffix = f'-{access_service}'
             elif access_service == 'StandardVideo' or access_service is None:
                 preference = 1
 
@@ -104,21 +97,12 @@ class InfoExtractor:
                 'preference': preference,
             })
 
-            api_subtitles = stream.get('subtitles', [])
-            for sub_track in api_subtitles:
-                lang = sub_track.get('language') or 'da'
-                subtitles.setdefault(lang + subtitle_suffix, []).append({
-                    'url': sub_track['link'],
-                    'ext': sub_track.get('format', '').split('/')[-1] or 'vtt',
-                })
-
         return {
             "id": video_id,
             "title": item.get('season', {}).get('title', None) or item.get('title'),
             "season_number": item.get('season', {}).get('seasonNumber', None),
             "episode_number": item.get('episodeNumber', None),
             "formats": formats,
-            "subtitles": subtitles,
         }
     
 
@@ -141,13 +125,13 @@ class SeasonInfoExtractor:
         if not season_id:
             raise Exception("Could not extract season ID from URL")
 
-        season_data = download_webpage(
+        season_data = json.loads(download_webpage(
             url=self.SEASON_API_URL,
             params={
                 **self.SEASON_API_PARAMS,
                 'path': f'/saeson/{display_id}_{season_id}'
             },
-        ).json()
+        ))
 
         episodes = season_data.get('entries', [])[0].get('item', {}).get('episodes', {}).get('items', [])
         episode_infos = []
@@ -182,13 +166,13 @@ class SeriesInfoExtractor:
         if not series_id:
             raise Exception("Could not extract series ID from URL")
 
-        series_data = download_webpage(
+        series_data = json.loads(download_webpage(
             url=self.SERIES_API_URL,
             params={
                 **self.SERIES_API_PARAMS,
                 'path': f'/serie/{display_id}_{series_id}'
             },
-        ).json()
+        ))
 
         seasons = series_data.get('entries', [])[0].get('item', {}).get('show', {}).get('seasons', {}).get('items', [])
         season_infos = []
