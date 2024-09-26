@@ -134,19 +134,18 @@ class SeasonInfoExtractor:
         ))
 
         episodes = season_data.get('entries', [])[0].get('item', {}).get('episodes', {}).get('items', [])
-        episode_infos = []
+        episode_urls = []
         for episode in episodes:
             episode_path = episode.get('path')
             episode_url = urljoin(self.BASE_URL, episode_path)
-            info = self.info_extractor.extract(episode_url)
-            episode_infos.append(info)
+            episode_urls.append(episode_url)
 
         season_number = season_data.get('entries', [])[0].get('item', {}).get('seasonNumber')
 
-        return [{
+        return {
             'season_number': season_number,
-            'episodes': episode_infos
-        }] # Read why it's a list in next class
+            'episode_urls': episode_urls
+        }
  
 class SeriesInfoExtractor:
     BASE_URL = "https://www.dr.dk/drtv"
@@ -175,12 +174,10 @@ class SeriesInfoExtractor:
         ))
 
         seasons = series_data.get('entries', [])[0].get('item', {}).get('show', {}).get('seasons', {}).get('items', [])
-        season_infos = []
+        season_urls= []
         for season in seasons:
             season_path = season.get('path')
             season_url = urljoin(self.BASE_URL, season_path)
-            season_info = self.season_extractor.extract(season_url)
-            season_infos.append(season_info[0]) # We do [0] so we don't have to check for either a list or dict in main.py; only a list
-                                                # TODO: Maybe there is a better way to do it?
+            season_urls.append(season_url)
 
-        return season_infos
+        return season_urls

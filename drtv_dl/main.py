@@ -4,25 +4,28 @@ from drtv_dl.exceptions import DRTVDownloaderError
 from drtv_dl.logger import logger
 
 def download(url, resolution=None, with_subs=False):
-    try:
-        if '/drtv/serie/' in url:
-            extractor = SeriesInfoExtractor()
-        elif '/drtv/saeson/' in url:
-            extractor = SeasonInfoExtractor()
-        else:
-            extractor = InfoExtractor()
+    ie = InfoExtractor()
+    sie = SeasonInfoExtractor()
 
-        info = extractor.extract(url)
+    if '/drtv/serie/' in url:
+        extractor = SeriesInfoExtractor()
+    elif '/drtv/saeson/' in url:
+        extractor = sie
+    else:
+        extractor = ie
 
-        downloader = DRTVDownloader()
+    info = extractor.extract(url)
+    downloader = DRTVDownloader()
 
-        if isinstance(info, list):
-            for season in info:
-                for episode in season['episodes']:
-                    downloader.download(episode, resolution=resolution, with_subs=with_subs)
-        else:
-            downloader.download(info, resolution=resolution, with_subs=with_subs)
-
-    except Exception as e:
-        logger.error(f"Failed to download video: {str(e)}")
-        raise DRTVDownloaderError(f"Failed to download video: {str(e)}") from None
+    if isinstance(info, dict) and 'episode_urls' in info:
+        for episode_url in info['episode_urls']:
+            episode_info = ie.extract(episode_url)
+            downloader.download(episode_info, resolution=resolution, with_subs=with_subs)
+    elif isinstance(info, list):
+        for season in info:
+            saeson_info = sie.extract(season)
+            for episode_url in saeson_info['episode_urls']:
+                episode_info = ie.extract(episode_url)
+                downloader.download(episode_info, resolution=resolution, with_subs=with_subs)
+    else:
+        downloader.download(info, resolution=resolution, with_subs=with_subs)

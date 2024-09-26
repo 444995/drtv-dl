@@ -5,7 +5,7 @@ import ffmpeg
 from urllib.parse import urljoin, unquote
 from drtv_dl.exceptions import DownloadError
 from drtv_dl.logger import logger
-from drtv_dl.helpers import sanitize_filename, download_webpage, vtt_to_srt
+from drtv_dl.helpers import sanitize_filename, download_webpage, vtt_to_srt, download_file
 from collections import defaultdict
 
 
@@ -118,14 +118,6 @@ class DRTVDownloader:
 
         return optimal_stream
 
-    def _download_file(self, url, filename):
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-        
-        with open(filename, 'wb') as file:
-            for chunk in response.iter_content(chunk_size=8192):
-                file.write(chunk)
-
     def _extract_map_uri(self, m3u8_content, base_url):
         for line in m3u8_content.splitlines():
             if line.startswith('#EXT-X-MAP:'):
@@ -152,7 +144,7 @@ class DRTVDownloader:
         video_map_uri = self._extract_map_uri(video_m3u8, optimal_stream['video']['uri'])
         if video_map_uri:
             video_filename = f"{base_filename}.video"
-            self._download_file(video_map_uri, video_filename)
+            download_file(video_map_uri, video_filename)
             logger.info(f"Video downloaded: {video_filename}")
         else:
             raise DownloadError("Could not find video MAP URI")
@@ -162,7 +154,7 @@ class DRTVDownloader:
         audio_map_uri = self._extract_map_uri(audio_m3u8, optimal_stream['audio']['uri'])
         if audio_map_uri:
             audio_filename = f"{base_filename}.audio"
-            self._download_file(audio_map_uri, audio_filename)
+            download_file(audio_map_uri, audio_filename)
             logger.info(f"Audio downloaded: {audio_filename}")
         else:
             raise DownloadError("Could not find audio MAP URI")
@@ -171,7 +163,7 @@ class DRTVDownloader:
         if with_subs and optimal_stream['subtitle']:
             subtitle_url = optimal_stream['subtitle']['uri']
             vtt_filename = f"{base_filename}.vtt"
-            self._download_file(subtitle_url, vtt_filename)
+            download_file(subtitle_url, vtt_filename)
             logger.info(f"Subtitle downloaded: {vtt_filename}")
             
             srt_filename = f"{base_filename}.srt"

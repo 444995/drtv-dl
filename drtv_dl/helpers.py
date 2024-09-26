@@ -4,6 +4,14 @@ import webvtt
 import os
 from drtv_dl.logger import logger
 
+def download_file(url, filename):
+    response = requests.get(url, stream=True)
+    response.raise_for_status()
+    
+    with open(filename, 'wb') as file:
+        for chunk in response.iter_content(chunk_size=8192):
+            file.write(chunk)
+
 def download_webpage(url, headers=None, data=None, params=None, json=None, save_to=None):
     response = requests.get(
         url=url,
