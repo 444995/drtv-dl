@@ -8,7 +8,6 @@ setup(
         "requests>=2.25.1",
         "tqdm>=4.59.0",
         "ffmpeg-python",
-        "webvtt-py",
     ],
     entry_points={
         "console_scripts": [

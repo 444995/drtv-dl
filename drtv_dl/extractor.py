@@ -4,7 +4,7 @@ import requests
 import uuid
 import json
 from drtv_dl.logger import logger
-from drtv_dl.helpers import download_webpage, extract_ids_from_url
+from drtv_dl.helpers import download_webpage, extract_ids_from_url, print_to_screen
 from urllib.parse import urljoin
 
 class InfoExtractor:
@@ -27,6 +27,7 @@ class InfoExtractor:
     }
 
     def __init__(self):
+        print_to_screen("Obtaining anonymous token")
         anon_token_response = requests.post(
             url=self.ANONYMOUS_SSO_URL,
             params=self.ANONYMOUS_SSO_PARAMS,
@@ -41,26 +42,28 @@ class InfoExtractor:
         anon_token_json = anon_token_response.json()
         self._TOKEN = next((entry['value'] for entry in anon_token_json if entry['type'] == 'UserAccount'), None)
         if not self._TOKEN:
+            logger.error("Failed to retrieve anonymous token")
             raise Exception("Couldn't retrieve anonymous token")
+        else:
+            logger.debug("Anonymous token acquired successfully")
 
     def extract(self, url):
-        _, item_id = extract_ids_from_url(url)
+        print_to_screen(f"Extracting information from URL: {url}")
+        display_id, item_id = extract_ids_from_url(url)
         if not item_id:
+            logger.error("Could not extract item ID from URL")
             raise Exception("Could not extract item ID from URL")
 
-        item_response = requests.get(
+        print_to_screen(f"{display_id}: Downloading item JSON metadata")
+        item = json.loads(download_webpage(
             self.ITEM_API_URL.format(item_id),
             params=self.ITEM_DATA_PARAMS,
             headers={'Authorization': f'Bearer {self._TOKEN}'}
-        )
-        item_response.raise_for_status()
-        item = item_response.json()
-
-        with open("item.json", "w") as f:
-            f.write(json.dumps(item, indent=4))
+        ))
 
         video_id = item.get('customId', '').split(':')[-1] or item_id
 
+        print_to_screen(f"{video_id}: Fetching stream data...")
         stream_response = requests.get(
             self.STREAM_API_URL.format(item_id),
             params={
@@ -76,6 +79,7 @@ class InfoExtractor:
         stream_response.raise_for_status()
         stream_data = stream_response.json()
 
+        logger.debug(f"{video_id}: Parsing available formats")
         formats = []
         for stream in stream_data:
             stream_url = stream.get('url', None)
@@ -104,7 +108,6 @@ class InfoExtractor:
             "episode_number": item.get('episodeNumber', None),
             "formats": formats,
         }
-    
 
 
 class SeasonInfoExtractor:
@@ -117,14 +120,17 @@ class SeasonInfoExtractor:
         'max_list_prefetch': '3',
     }
 
-    def __init__(self):
-        self.info_extractor = InfoExtractor()
+    def __init__(self, ie):
+        self.info_extractor = ie
 
     def extract(self, url):
+        print_to_screen(f"Extracting season information from URL: {url}")
         display_id, season_id = extract_ids_from_url(url)
         if not season_id:
+            logger.error("Could not extract season ID from URL")
             raise Exception("Could not extract season ID from URL")
 
+        print_to_screen(f"{display_id}: Downloading season JSON metadata")
         season_data = json.loads(download_webpage(
             url=self.SEASON_API_URL,
             params={
@@ -142,6 +148,7 @@ class SeasonInfoExtractor:
 
         season_number = season_data.get('entries', [])[0].get('item', {}).get('seasonNumber')
 
+        print_to_screen(f"Found {len(episode_urls)} episodes in season {season_number}")
         return {
             'season_number': season_number,
             'episode_urls': episode_urls
@@ -157,14 +164,17 @@ class SeriesInfoExtractor:
         'max_list_prefetch': '3',
     }
 
-    def __init__(self):
-        self.season_extractor = SeasonInfoExtractor()
+    def __init__(self, sie):
+        self.season_extractor = sie
 
     def extract(self, url):
         display_id, series_id = extract_ids_from_url(url)
+        print_to_screen(f"Extracting series information from: {display_id}_{series_id}")
         if not series_id:
+            logger.error("Could not extract series ID from URL")
             raise Exception("Could not extract series ID from URL")
 
+        print_to_screen(f"{display_id}: Downloading series JSON metadata")
         series_data = json.loads(download_webpage(
             url=self.SERIES_API_URL,
             params={
@@ -174,10 +184,13 @@ class SeriesInfoExtractor:
         ))
 
         seasons = series_data.get('entries', [])[0].get('item', {}).get('show', {}).get('seasons', {}).get('items', [])
-        season_urls= []
+        season_info = []
         for season in seasons:
             season_path = season.get('path')
             season_url = urljoin(self.BASE_URL, season_path)
-            season_urls.append(season_url)
+            print_to_screen(f"Processing season: {season_url}")
+            season = self.season_extractor.extract(season_url)
+            season_info.append(season)
 
-        return season_urls
+        print_to_screen(f"Total seasons found: {len(season_info)}")
+        return season_info

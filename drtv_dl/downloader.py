@@ -1,11 +1,10 @@
 import os
 import re
-import requests
 import ffmpeg
 from urllib.parse import urljoin, unquote
 from drtv_dl.exceptions import DownloadError
 from drtv_dl.logger import logger
-from drtv_dl.helpers import sanitize_filename, download_webpage, vtt_to_srt, download_file
+from drtv_dl.helpers import sanitize_filename, download_webpage, vtt_to_srt, download_file, print_to_screen
 from collections import defaultdict
 
 
@@ -62,6 +61,7 @@ class DRTVDownloader:
         pass
 
     def combine_video_audio(self, video_file, audio_file, subtitle_file, output_file):
+        print_to_screen(f"Combining files into {output_file}")
         video_input = ffmpeg.input(os.path.join(os.getcwd(), video_file))
         audio_input = ffmpeg.input(os.path.join(os.getcwd(), audio_file))
 
@@ -79,14 +79,17 @@ class DRTVDownloader:
             os.path.join(os.getcwd(), output_file), 
             **output_params
         ).run(quiet=True, overwrite_output=True)
+        print_to_screen(f"File saved as {output_file}")
 
     def _get_optimal_format(self, formats):
-        if formats == []:
-            raise DownloadError("No formats for media was available")
+        if not formats:
+            logger.error("No available formats to choose from")
+            raise DownloadError("No formats for media were available")
         preferred_formats = [f for f in formats if f.get('preference') == 1]
         if not preferred_formats:
-            logger.error(f"No suitable formats found")
+            logger.error("No suitable formats found")
             raise DownloadError("No suitable formats found.")
+        logger.debug(f"Optimal format selected: {preferred_formats[0]['format_id']}")
         return preferred_formats[0]
 
     def _get_optimal_stream(self, parsed_m3u8_streams, desired_resolution):
@@ -130,54 +133,58 @@ class DRTVDownloader:
     def download(self, info, resolution=None, with_subs=False):
         format_info = self._get_optimal_format(info.get('formats', []))
         stream_url = format_info.get('url')
+        logger.debug(f"Stream URL: {stream_url}")
+
+        print_to_screen(f"{info['id']}: Downloading m3u8 master manifest...")
         m3u8_streams = download_webpage(url=stream_url)
         parsed_m3u8_streams = M3U8Parser(stream_url, m3u8_streams).parse()
         optimal_stream = self._get_optimal_stream(parsed_m3u8_streams, resolution)
 
         base_filename = self._generate_filename(info)
-        
         subtitle_filename = None
 
-
         # video download
+        print_to_screen(f"{info['id']}: Downloading video stream...")
         video_m3u8 = download_webpage(url=optimal_stream['video']['uri'])
         video_map_uri = self._extract_map_uri(video_m3u8, optimal_stream['video']['uri'])
         if video_map_uri:
             video_filename = f"{base_filename}.video"
             download_file(video_map_uri, video_filename)
-            logger.info(f"Video downloaded: {video_filename}")
+            print_to_screen(f"Video saved as {video_filename}")
         else:
+            logger.error("Could not find video MAP URI")
             raise DownloadError("Could not find video MAP URI")
 
         # audio download
+        print_to_screen(f"{info['id']}: Downloading audio stream...")
         audio_m3u8 = download_webpage(url=optimal_stream['audio']['uri'])
         audio_map_uri = self._extract_map_uri(audio_m3u8, optimal_stream['audio']['uri'])
         if audio_map_uri:
             audio_filename = f"{base_filename}.audio"
             download_file(audio_map_uri, audio_filename)
-            logger.info(f"Audio downloaded: {audio_filename}")
+            print_to_screen(f"Audio saved as {audio_filename}")
         else:
+            logger.error("Could not find audio MAP URI")
             raise DownloadError("Could not find audio MAP URI")
 
-        # subtitle download (if --with-subs enabled)
+        # subtitle download
         if with_subs and optimal_stream['subtitle']:
+            print_to_screen(f"{info['id']}: Downloading subtitles...")
             subtitle_url = optimal_stream['subtitle']['uri']
             vtt_filename = f"{base_filename}.vtt"
             download_file(subtitle_url, vtt_filename)
-            logger.info(f"Subtitle downloaded: {vtt_filename}")
+            print_to_screen(f"Subtitles saved as {vtt_filename}")
             
             srt_filename = f"{base_filename}.srt"
             vtt_to_srt(vtt_filename, srt_filename)
-            logger.info(f"Converted subtitle to SRT: {srt_filename}")
-            
+            print_to_screen(f"Converted subtitles to SRT format: {srt_filename}")
             os.remove(vtt_filename)
-            
             subtitle_filename = srt_filename
 
-        # combine video and audio (and subtitles if available)
+        # combining streams
         output_filename = f"{base_filename}.mp4"
+        print_to_screen(f"{info['id']}: Merging streams into {output_filename}")
         self.combine_video_audio(video_filename, audio_filename, subtitle_filename, output_filename)
-        logger.info(f"Combined video and audio into: {output_filename}")
 
         # cleanup
         os.remove(video_filename)
@@ -185,7 +192,7 @@ class DRTVDownloader:
         if subtitle_filename:
             os.remove(subtitle_filename)
 
-        logger.info("Download and combination completed successfully.")
+        print_to_screen(f"{info['id']}: Download completed successfully.")
 
     @staticmethod
     def _generate_filename(info):

@@ -1,10 +1,15 @@
 import logging
-import os
+
+class DRTVDLCustomFormatter(logging.Formatter):
+    def format(self, record):
+        if not hasattr(record, 'module_class'):
+            record.module_class = record.module
+        return super().format(record)
 
 def setup_logger():
     logger = logging.getLogger('drtv_dl')
     logger.setLevel(logging.INFO)
-    formatter = logging.Formatter('[%(module)s] - %(levelname)s - %(message)s')
+    formatter = DRTVDLCustomFormatter('[%(module_class)s] - %(levelname)s - %(message)s')
     
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
