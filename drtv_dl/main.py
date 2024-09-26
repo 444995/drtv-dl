@@ -1,7 +1,5 @@
 from drtv_dl.downloader import DRTVDownloader
 from drtv_dl.extractor import InfoExtractor, SeasonInfoExtractor, SeriesInfoExtractor
-from drtv_dl.exceptions import DRTVDownloaderError
-from drtv_dl.logger import logger
 from drtv_dl.helpers import print_to_screen
 
 def download(url, resolution=None, with_subs=False):

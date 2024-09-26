@@ -17,6 +17,7 @@ To install drtv-dl, follow these steps:
    cd drtv-dl
    pip install .
    ```
+And make sure you have ffmpeg installed on your system.
 
 ## Usage
 

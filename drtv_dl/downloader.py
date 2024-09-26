@@ -61,7 +61,6 @@ class DRTVDownloader:
         pass
 
     def combine_video_audio(self, video_file, audio_file, subtitle_file, output_file):
-        print_to_screen(f"Combining files into {output_file}")
         video_input = ffmpeg.input(os.path.join(os.getcwd(), video_file))
         audio_input = ffmpeg.input(os.path.join(os.getcwd(), audio_file))
 
@@ -79,7 +78,6 @@ class DRTVDownloader:
             os.path.join(os.getcwd(), output_file), 
             **output_params
         ).run(quiet=True, overwrite_output=True)
-        print_to_screen(f"File saved as {output_file}")
 
     def _get_optimal_format(self, formats):
         if not formats:
@@ -177,7 +175,6 @@ class DRTVDownloader:
             
             srt_filename = f"{base_filename}.srt"
             vtt_to_srt(vtt_filename, srt_filename)
-            print_to_screen(f"Converted subtitles to SRT format: {srt_filename}")
             os.remove(vtt_filename)
             subtitle_filename = srt_filename
 
@@ -191,8 +188,6 @@ class DRTVDownloader:
         os.remove(audio_filename)
         if subtitle_filename:
             os.remove(subtitle_filename)
-
-        print_to_screen(f"{info['id']}: Download completed successfully.")
 
     @staticmethod
     def _generate_filename(info):

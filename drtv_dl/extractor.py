@@ -48,13 +48,13 @@ class InfoExtractor:
             logger.debug("Anonymous token acquired successfully")
 
     def extract(self, url):
-        print_to_screen(f"Extracting information from URL: {url}")
-        display_id, item_id = extract_ids_from_url(url)
+        _, item_id = extract_ids_from_url(url)
+        print_to_screen(f"Extracting information from: {item_id}")
         if not item_id:
             logger.error("Could not extract item ID from URL")
             raise Exception("Could not extract item ID from URL")
 
-        print_to_screen(f"{display_id}: Downloading item JSON metadata")
+        print_to_screen(f"{item_id}: Downloading item JSON metadata")
         item = json.loads(download_webpage(
             self.ITEM_API_URL.format(item_id),
             params=self.ITEM_DATA_PARAMS,
@@ -124,13 +124,13 @@ class SeasonInfoExtractor:
         self.info_extractor = ie
 
     def extract(self, url):
-        print_to_screen(f"Extracting season information from URL: {url}")
         display_id, season_id = extract_ids_from_url(url)
+        print_to_screen(f"Extracting season information from: {display_id}_{season_id}")
         if not season_id:
             logger.error("Could not extract season ID from URL")
             raise Exception("Could not extract season ID from URL")
 
-        print_to_screen(f"{display_id}: Downloading season JSON metadata")
+        print_to_screen(f"{season_id}: Downloading season JSON metadata")
         season_data = json.loads(download_webpage(
             url=self.SEASON_API_URL,
             params={
@@ -174,7 +174,7 @@ class SeriesInfoExtractor:
             logger.error("Could not extract series ID from URL")
             raise Exception("Could not extract series ID from URL")
 
-        print_to_screen(f"{display_id}: Downloading series JSON metadata")
+        print_to_screen(f"{series_id}: Downloading series JSON metadata")
         series_data = json.loads(download_webpage(
             url=self.SERIES_API_URL,
             params={
