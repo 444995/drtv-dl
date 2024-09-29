@@ -6,16 +6,9 @@ drtv-dl is a tool for downloading videos from [DRTV](https://dr.dk/drtv) - inclu
 
 ## Installation
 
-To install drtv-dl, follow these steps:
-
-- Clone the repository:
+To install drtv-dl, run this:
    ```
-   git clone https://github.com/444995/drtv-dl.git
-   ```
-- Install:
-   ```
-   cd drtv-dl
-   pip install .
+   pip install git+https://github.com/444995/drtv-dl.git
    ```
 And make sure you have ffmpeg installed on your system.
 
