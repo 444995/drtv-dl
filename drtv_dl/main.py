@@ -1,8 +1,11 @@
 from drtv_dl.downloader import DRTVDownloader
 from drtv_dl.extractor import InfoExtractor, SeasonInfoExtractor, SeriesInfoExtractor
-from drtv_dl.helpers import print_to_screen
+from drtv_dl.helpers import print_to_screen, is_valid_drtv_url
 
 def download(url, resolution=None, with_subs=False):
+    if not is_valid_drtv_url(url):
+        raise Exception("URL was not found to be valid")
+    
     print_to_screen(f"Processing URL: {url}")
     ie = InfoExtractor()
     sie = SeasonInfoExtractor(ie)
@@ -14,7 +17,7 @@ def download(url, resolution=None, with_subs=False):
         print_to_screen("Identified as a season URL")
         extractor = sie
     else:
-        print_to_screen("Identified as an episode URL")
+        print_to_screen("Identified as a single video URL")
         extractor = ie
 
     info = extractor.extract(url)
@@ -35,5 +38,5 @@ def download(url, resolution=None, with_subs=False):
                 episode_info = ie.extract(episode_url)
                 downloader.download(episode_info, resolution=resolution, with_subs=with_subs)
     else:
-        print_to_screen("Starting download of a single episode")
+        print_to_screen("Starting download of a single video")
         downloader.download(info, resolution=resolution, with_subs=with_subs)

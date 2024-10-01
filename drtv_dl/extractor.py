@@ -18,10 +18,9 @@ class InfoExtractor:
     }
     ITEM_API_URL = 'https://production-cdn.dr-massive.com/api/items/{}'
     STREAM_API_URL = 'https://production.dr-massive.com/api/account/items/{}/videos'
-    ANONYMOUS_SSO_URL = 'https://production.dr-massive.com/api/authorization/anonymous-sso'
+    ANONYMOUS_SSO_URL = 'https://isl.dr-massive.com/api/authorization/anonymous-sso'
     ANONYMOUS_SSO_PARAMS = {
-        'device': 'web_browser',
-        'ff': 'idp,ldp,rpt',
+        'device': 'phone_android',
         'lang': 'da',
         'supportFallbackToken': 'true',
     }

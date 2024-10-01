@@ -4,6 +4,10 @@ import logging
 import requests, sys
 from drtv_dl.logger import logger
 
+def is_valid_drtv_url(url):
+    pattern = r'^https://www\.dr\.dk/drtv/(se|saeson|serie|program)/[a-zA-Z0-9\-_]+_\d+$'
+    return bool(re.match(pattern, url))
+
 def print_to_screen(message, level='info'):
     frame = inspect.currentframe().f_back
     module = inspect.getmodule(frame)
@@ -23,6 +27,7 @@ def print_to_screen(message, level='info'):
 
 
 def download_file(url, filename):
+    print_to_screen(f"Destination: {filename}")
     response = requests.get(url, stream=True)
     response.raise_for_status()
     
@@ -74,9 +79,9 @@ def extract_ids_from_url(url):
     return display_id, item_id
 
 def sanitize_filename(filename):
-    sanitized = re.sub(r'[<>:"/\\|?*]', '_', filename)
+    sanitized = re.sub(r'[<>:"/\\|?*]', ' - ', filename)
     logger.debug(f"Sanitized filename: {sanitized}")
-    return sanitized
+    return sanitized.replace("  ", " ")
 
 def vtt_to_srt(vtt_file, srt_file):
     with open(vtt_file, 'r', encoding='utf-8') as vtt, open(srt_file, 'w', encoding='utf-8') as srt:
@@ -108,7 +113,8 @@ class ProgressTracker:
         unit, divisor = self.get_appropriate_unit(self.total_size)
         downloaded_unit = self.downloaded / divisor
         total_unit = self.total_size / divisor
-        print(f'\r {self.filename}: {downloaded_unit:.2f}/{total_unit:.2f} {unit}', end='', file=sys.stderr, flush=True)
+        percentage_done = (downloaded_unit / total_unit) * 100
+        print(f'\r {" " * 2}~ {downloaded_unit:.2f}/{total_unit:.2f} {unit} - {percentage_done:.2f}%', end='', file=sys.stderr, flush=True)
 
     def finish(self):
         print(file=sys.stderr)

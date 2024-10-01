@@ -133,7 +133,7 @@ class DRTVDownloader:
         stream_url = format_info.get('url')
         logger.debug(f"Stream URL: {stream_url}")
 
-        print_to_screen(f"{info['id']}: Downloading m3u8 master manifest...")
+        print_to_screen(f"{info['id']}: Downloading m3u8 manifest...")
         m3u8_streams = download_webpage(url=stream_url)
         parsed_m3u8_streams = M3U8Parser(stream_url, m3u8_streams).parse()
         optimal_stream = self._get_optimal_stream(parsed_m3u8_streams, resolution)
@@ -142,7 +142,6 @@ class DRTVDownloader:
         subtitle_filename = None
 
         # video download
-        print_to_screen(f"{info['id']}: Downloading video stream...")
         video_m3u8 = download_webpage(url=optimal_stream['video']['uri'])
         video_map_uri = self._extract_map_uri(video_m3u8, optimal_stream['video']['uri'])
         if video_map_uri:
@@ -154,7 +153,6 @@ class DRTVDownloader:
             raise DownloadError("Could not find video MAP URI")
 
         # audio download
-        print_to_screen(f"{info['id']}: Downloading audio stream...")
         audio_m3u8 = download_webpage(url=optimal_stream['audio']['uri'])
         audio_map_uri = self._extract_map_uri(audio_m3u8, optimal_stream['audio']['uri'])
         if audio_map_uri:
@@ -167,7 +165,6 @@ class DRTVDownloader:
 
         # subtitle download
         if with_subs and optimal_stream['subtitle']:
-            print_to_screen(f"{info['id']}: Downloading subtitles...")
             subtitle_url = optimal_stream['subtitle']['uri']
             vtt_filename = f"{base_filename}.vtt"
             download_file(subtitle_url, vtt_filename)
