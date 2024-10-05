@@ -4,7 +4,7 @@ import requests
 import uuid
 import json
 from drtv_dl.logger import logger
-from drtv_dl.helpers import download_webpage, extract_ids_from_url, print_to_screen
+from drtv_dl.utils.helpers import download_webpage, extract_ids_from_url, print_to_screen
 from urllib.parse import urljoin
 
 class InfoExtractor:

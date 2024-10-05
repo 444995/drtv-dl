@@ -1,8 +1,10 @@
 from drtv_dl.downloader import DRTVDownloader
 from drtv_dl.extractor import InfoExtractor, SeasonInfoExtractor, SeriesInfoExtractor
-from drtv_dl.helpers import print_to_screen, is_valid_drtv_url
+from drtv_dl.utils.helpers import print_to_screen, is_valid_drtv_url, get_optimal_format, download_webpage, print_formats
+from drtv_dl.utils.m3u8_parser import M3U8Parser
 
-def download(url, resolution=None, with_subs=False):
+
+def download(url, list_formats, resolution=None, with_subs=False):
     if not is_valid_drtv_url(url):
         raise Exception("URL was not found to be valid")
     
@@ -26,17 +28,17 @@ def download(url, resolution=None, with_subs=False):
     if isinstance(info, dict) and 'episode_urls' in info:
         print_to_screen(f"Starting download of season {info.get('season_number', '')}")
         for idx, episode_url in enumerate(info['episode_urls'], start=1):
-            print_to_screen(f"Downloading episode {idx} of {len(info['episode_urls'])}")
+            print_to_screen(f"Processing episode {idx} of {len(info['episode_urls'])}")
             episode_info = ie.extract(episode_url)
-            downloader.download(episode_info, resolution=resolution, with_subs=with_subs)
+            downloader.download(episode_info, list_formats, resolution=resolution, with_subs=with_subs)
     elif isinstance(info, list):
         total_seasons = len(info)
         for season_idx, season in enumerate(info, start=1):
-            print_to_screen(f"Downloading season {season_idx} of {total_seasons}")
+            print_to_screen(f"Processing season {season_idx} of {total_seasons}")
             for idx, episode_url in enumerate(season['episode_urls'], start=1):
-                print_to_screen(f"Downloading episode {idx} of {len(season['episode_urls'])} in season {season_idx}")
+                print_to_screen(f"Processing episode {idx} of {len(season['episode_urls'])} in season {season_idx} of {total_seasons}")
                 episode_info = ie.extract(episode_url)
-                downloader.download(episode_info, resolution=resolution, with_subs=with_subs)
+                downloader.download(episode_info, list_formats, resolution=resolution, with_subs=with_subs)
     else:
-        print_to_screen("Starting download of a single video")
-        downloader.download(info, resolution=resolution, with_subs=with_subs)
+        print_to_screen("Processing a single video")
+        downloader.download(info, list_formats, resolution=resolution, with_subs=with_subs)

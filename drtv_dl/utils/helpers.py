@@ -3,6 +3,7 @@ import inspect
 import logging
 import requests, sys
 from drtv_dl.logger import logger
+from drtv_dl.exceptions import DownloadError
 
 def is_valid_drtv_url(url):
     pattern = r'^https://www\.dr\.dk/drtv/(se|saeson|serie|program)/[a-zA-Z0-9\-_]+_\d+$'
@@ -118,3 +119,76 @@ class ProgressTracker:
 
     def finish(self):
         print(file=sys.stderr)
+
+def get_optimal_format(formats):
+    if not formats:
+        logger.error("No available formats to choose from")
+        raise DownloadError("No formats for media were available")
+    preferred_formats = [f for f in formats if f.get('preference') == 1]
+    if not preferred_formats:
+        logger.error("No suitable formats found")
+        raise DownloadError("No suitable formats found.")
+    logger.debug(f"Optimal format selected: {preferred_formats[0]['format_id']}")
+    return preferred_formats[0]
+
+def print_formats(formats):
+    # helper func
+    def format_row(columns, widths):
+        return " │ ".join([col.ljust(width) for col, width in zip(columns, widths)])
+
+    data_rows = []
+    for audio in formats.get('audio', []):
+        data_rows.append(
+            [
+                f"audio_{audio['group-id']}-{audio['name']}-{audio['language']}", 
+                "mp4", "", 
+                "audio only", 
+                "unknown", "unknown", 
+                "audio only", 
+                f"[{audio['language']}] {audio['name']}", 
+                "m3u8"
+            ]
+        )
+    for subtitle in formats.get('subtitles', []):
+        data_rows.append(
+            [
+                f"subs_{subtitle['name']}-{subtitle['language']}", 
+                "vtt", "", 
+                "subtitles", 
+                "unknown", "unknown", 
+                "sub only", 
+                f"[{subtitle['language']}] {subtitle['name']}", 
+                "m3u8"
+            ]
+        )
+    for video in formats.get('video', []):
+        data_rows.append(
+            [
+                f"video_{video['bandwidth']}", 
+                "mp4", video['frame-rate'], 
+                video['resolution'], 
+                f"{int(video['bandwidth']) // 1000}k", 
+                f"{int(video['average-bandwidth']) // 1000}k", 
+                video['codecs'].split(",")[0], 
+                "video only", 
+                "m3u8"
+            ]
+        )
+
+    data_rows.insert(0, 
+        [
+            "ID", "EXT", "FPS", 
+            "RESOLUTION", "TBR", 
+            "VBR", "VCODEC", 
+            "ACODEC", "PROTOCOL"
+        ]
+    )
+
+    column_widths = [max(len(str(item)) for item in col) for col in zip(*data_rows)]
+    print()
+    for i, row in enumerate(data_rows):
+        if i == 1:  # After the header, print a separator line
+            print("─" * (sum(column_widths) + 3 * (len(column_widths) - 1)))
+        print(format_row(row, column_widths))
+    print("─" * (sum(column_widths) + 3 * (len(column_widths) - 1)))
+    print()
