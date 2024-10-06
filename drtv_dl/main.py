@@ -1,13 +1,21 @@
 from drtv_dl.downloader import DRTVDownloader
-from drtv_dl.extractor import InfoExtractor, SeasonInfoExtractor, SeriesInfoExtractor
-from drtv_dl.utils.helpers import print_to_screen, is_valid_drtv_url, get_optimal_format, download_webpage, print_formats
-from drtv_dl.utils.m3u8_parser import M3U8Parser
+from drtv_dl.extractor import (
+    InfoExtractor, 
+    SeasonInfoExtractor, 
+    SeriesInfoExtractor 
+)
+from drtv_dl.utils.helpers import (
+    print_to_screen, 
+    is_valid_drtv_url,
+    set_suppress_output,
+)
 
-
-def download(url, list_formats, resolution=None, with_subs=False):
+def download(url, list_formats=False, resolution=None, include_subs=False, suppress_output=False):
     if not is_valid_drtv_url(url):
         raise Exception("URL was not found to be valid")
     
+    set_suppress_output(suppress_output)
+
     print_to_screen(f"Processing URL: {url}")
     ie = InfoExtractor()
     sie = SeasonInfoExtractor(ie)
@@ -19,7 +27,7 @@ def download(url, list_formats, resolution=None, with_subs=False):
         print_to_screen("Identified as a season URL")
         extractor = sie
     else:
-        print_to_screen("Identified as a single video URL")
+        print_to_screen("Identified as a single item URL")
         extractor = ie
 
     info = extractor.extract(url)
@@ -30,7 +38,7 @@ def download(url, list_formats, resolution=None, with_subs=False):
         for idx, episode_url in enumerate(info['episode_urls'], start=1):
             print_to_screen(f"Processing episode {idx} of {len(info['episode_urls'])}")
             episode_info = ie.extract(episode_url)
-            downloader.download(episode_info, list_formats, resolution=resolution, with_subs=with_subs)
+            downloader.download(episode_info, list_formats, resolution=resolution, include_subs=include_subs)
     elif isinstance(info, list):
         total_seasons = len(info)
         for season_idx, season in enumerate(info, start=1):
@@ -38,7 +46,7 @@ def download(url, list_formats, resolution=None, with_subs=False):
             for idx, episode_url in enumerate(season['episode_urls'], start=1):
                 print_to_screen(f"Processing episode {idx} of {len(season['episode_urls'])} in season {season_idx} of {total_seasons}")
                 episode_info = ie.extract(episode_url)
-                downloader.download(episode_info, list_formats, resolution=resolution, with_subs=with_subs)
+                downloader.download(episode_info, list_formats, resolution=resolution, include_subs=include_subs)
     else:
-        print_to_screen("Processing a single video")
-        downloader.download(info, list_formats, resolution=resolution, with_subs=with_subs)
+        print_to_screen("Processing a single item")
+        downloader.download(info, list_formats, resolution=resolution, include_subs=include_subs)

@@ -28,7 +28,7 @@ import drtv_dl
 drtv_dl.download(
     url="REPLACE_URL", 
     resolution="1080p", 
-    with_subs=True
+    include_subs=True
 )
 ```
 

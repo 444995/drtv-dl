@@ -1,6 +1,6 @@
 
 from collections import defaultdict
-from urllib.parse import urljoin
+from urllib.parse import urljoin, unquote
 import re
 
 class M3U8Parser:
@@ -49,3 +49,12 @@ class M3U8Parser:
         if is_subtitle:
             uri = uri.replace("/playlist.m3u8", ".vtt")
         return urljoin(self.base_uri, uri)
+
+    @staticmethod
+    def extract_map_uri(m3u8_content, base_url):
+            for line in m3u8_content.splitlines():
+                if line.startswith('#EXT-X-MAP:'):
+                    uri_part = line.split('URI=')[1].split(',')[0].strip('"')
+                    uri = uri_part.split('"')[0]
+                    return urljoin(base_url, unquote(uri))
+            return None
