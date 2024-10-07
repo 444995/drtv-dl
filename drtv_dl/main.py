@@ -11,7 +11,7 @@ from drtv_dl.utils.helpers import (
     is_valid_drtv_url,
 )
 
-def download(url, list_formats=False, resolution=None, include_subs=False, suppress_output=False):
+def download(url, resolution="360p", include_subs=False, ntmpl=None, list_formats=False, suppress_output=False):
     if not is_valid_drtv_url(url):
         raise InvalidURLError("URL was not found to be valid")
     
@@ -39,7 +39,7 @@ def download(url, list_formats=False, resolution=None, include_subs=False, suppr
         for idx, episode_url in enumerate(info['episode_urls'], start=1):
             print_to_screen(f"Processing episode {idx} of {len(info['episode_urls'])}")
             episode_info = ie.extract(episode_url)
-            downloader.download(episode_info, list_formats, resolution=resolution, include_subs=include_subs)
+            downloader.download(episode_info, list_formats, resolution=resolution, include_subs=include_subs, ntmpl=ntmpl)
     elif isinstance(info, list):
         total_seasons = len(info)
         for season_idx, season in enumerate(info, start=1):
@@ -47,7 +47,7 @@ def download(url, list_formats=False, resolution=None, include_subs=False, suppr
             for idx, episode_url in enumerate(season['episode_urls'], start=1):
                 print_to_screen(f"Processing episode {idx} of {len(season['episode_urls'])} in season {season_idx} of {total_seasons}")
                 episode_info = ie.extract(episode_url)
-                downloader.download(episode_info, list_formats, resolution=resolution, include_subs=include_subs)
+                downloader.download(episode_info, list_formats, resolution=resolution, include_subs=include_subs, ntmpl=ntmpl)
     else:
         print_to_screen("Processing a single item")
-        downloader.download(info, list_formats, resolution=resolution, include_subs=include_subs)
+        downloader.download(info, list_formats, resolution=resolution, include_subs=include_subs, ntmpl=ntmpl)

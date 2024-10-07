@@ -1,8 +1,10 @@
 import re
+import os
+import html
 import inspect
 import logging
 import requests
-import os
+
 from drtv_dl.logger import logger
 from drtv_dl.exceptions import (
     DownloadError,
@@ -12,7 +14,7 @@ from drtv_dl.utils import settings
 
 
 def is_valid_drtv_url(url):
-    pattern = r'^https://www\.dr\.dk/drtv/(se|saeson|serie|program)/[a-zA-Z0-9\-_]+_\d+$'
+    pattern = r'^https://www\.dr\.dk/drtv/(se|episode|saeson|serie|program)/[a-zA-Z0-9\-_]+_\d+$'
     return bool(re.match(pattern, url))
 
 def print_to_screen(message, level='info'):
@@ -36,6 +38,19 @@ def print_to_screen(message, level='info'):
     log_level = getattr(logging, level.upper(), logging.INFO)
     logger.log(log_level, message, extra={'module_class': identifier})
 
+def search_content(pattern, text, group_num=1):
+    if isinstance(pattern, str):
+        pattern = re.compile(pattern, re.DOTALL)
+
+    match = pattern.search(text)
+    
+    if not match:
+        return None
+
+    try:
+        return html.unescape(match.group(group_num))
+    except IndexError:
+        raise ValueError(f"Group {group_num} does not exist in the match.")
 
 def download_webpage(url, headers=None, data=None, params=None, json=None):
     logger.debug(f"Requesting URL: {url}")
@@ -72,7 +87,6 @@ def vtt_to_srt(vtt_file, srt_file):
         lines = content.split('\n\n')
         for i, line in enumerate(lines, start=1):
             srt.write(f"{i}\n{line}\n\n")
-    print_to_screen(f"Converted {vtt_file} to {srt_file}")
 
 def get_optimal_stream(parsed_m3u8_streams, desired_resolution):
         optimal_stream = {
@@ -146,16 +160,30 @@ def print_formats(formats):
             print("─" * (sum(column_widths) + 3 * (len(column_widths) - 1)))
     print("─" * (sum(column_widths) + 3 * (len(column_widths) - 1)) + "\n")
 
-def generate_filename(info):
-    title = info.get('title')
-    id_ = info.get('id')
-    season_number = info.get('season_number')
-    episode_number = info.get('episode_number')
 
-    if season_number and episode_number:
-        filename = f"{title} S{int(season_number):02d}E{int(episode_number):02d} [{id_}]"
+def generate_filename(info, ntmpl):
+    if ntmpl:
+        filename = ntmpl
+        for key in re.findall(r'\{(\w+)\}', filename):
+            if key.lower() in info and info[key.lower()] is not None:
+                value = str(info[key.lower()])
+                if key.lower() in ['season_number', 'episode_number']:
+                    value = value.zfill(2)
+                filename = filename.replace(f'{{{key}}}', value)
+            else:
+                raise KeyError(f"Key '{key}' is either not found in info dictionary or is None")
     else:
-        filename = f"{title} [{id_}]"
+        title = info.get('title', '')
+        _id = info.get('id', '')
+        season_number = info.get('season_number')
+        episode_number = info.get('episode_number')
+        episode_name = info.get('episode_name', '')
+        year = info.get('year')
+
+        if season_number and episode_number:
+            filename = f"{title} S{int(season_number):02d}E{int(episode_number):02d} - {episode_name} [{_id}]"
+        else:
+            filename = f"{title} ({year}) [{_id}]" if year else f"{title} [{_id}]"
 
     return sanitize_filename(filename)
 

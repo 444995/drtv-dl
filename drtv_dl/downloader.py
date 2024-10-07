@@ -21,7 +21,7 @@ from drtv_dl.exceptions import (
 )
 
 class DRTVDownloader:
-    def download(self, info, list_formats, resolution, include_subs):
+    def download(self, info, list_formats, resolution, include_subs, ntmpl):
         stream_url = get_optimal_format(info.get('formats', [])).get('url')
         m3u8_streams = self._download_m3u8_manifest(stream_url)
         parsed_m3u8_streams = M3U8Parser(stream_url, m3u8_streams).parse()
@@ -32,7 +32,7 @@ class DRTVDownloader:
 
         optimal_stream = get_optimal_stream(parsed_m3u8_streams, resolution)
         
-        base_filename = generate_filename(info)
+        base_filename = generate_filename(info, ntmpl)
         video_filename = self._download_stream(optimal_stream['video'], base_filename, 'video')
         audio_filename = self._download_stream(optimal_stream['audio'], base_filename, 'audio')
         subtitle_filename = self._download_subtitle(optimal_stream, base_filename, include_subs)

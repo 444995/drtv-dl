@@ -1,12 +1,23 @@
 # CREDIT TO https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/drtv.py
 
-import requests
 import uuid
 import json
-from drtv_dl.exceptions import TokenRetrievalError, ItemIDExtractionError, SeasonIDExtractionError, SeriesIDExtractionError
-from drtv_dl.logger import logger
-from drtv_dl.utils.helpers import download_webpage, extract_ids_from_url, print_to_screen
+import requests
 from urllib.parse import urljoin
+
+from drtv_dl.logger import logger
+from drtv_dl.exceptions import (
+    TokenRetrievalError, 
+    ItemIDExtractionError, 
+    SeasonIDExtractionError, 
+    SeriesIDExtractionError
+)
+from drtv_dl.utils.helpers import (
+    download_webpage, 
+    extract_ids_from_url, 
+    print_to_screen, 
+    search_content
+)
 
 class InfoExtractor:
     BASE_URL = "https://www.dr.dk/drtv"
@@ -42,10 +53,7 @@ class InfoExtractor:
         anon_token_json = anon_token_response.json()
         self._TOKEN = next((entry['value'] for entry in anon_token_json if entry['type'] == 'UserAccount'), None)
         if not self._TOKEN:
-            logger.error("Failed to retrieve anonymous token")
             raise TokenRetrievalError("Couldn't retrieve anonymous token")
-        else:
-            logger.debug("Anonymous token acquired successfully")
 
     def extract(self, url):
         _, item_id = extract_ids_from_url(url)
@@ -103,8 +111,12 @@ class InfoExtractor:
         return {
             "id": video_id,
             "title": item.get('season', {}).get('title', None) or item.get('title'),
+            "description": item.get('description', None),
+            "duration": item.get('duration', None),
+            "year": search_content(r'fra (\d{4})', item.get('description', '')) or item.get('releaseYear', None),
             "season_number": item.get('season', {}).get('seasonNumber', None),
             "episode_number": item.get('episodeNumber', None),
+            "episode_name": item.get('episodeName', '').replace(f"{item.get('season', {}).get('title', '')}:", '').strip() or None,
             "formats": formats,
         }
 

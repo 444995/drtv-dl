@@ -1,26 +1,40 @@
 # drtv-dl
 
-drtv-dl is a tool for downloading videos from [DRTV](https://dr.dk/drtv) - including its encrypted content.
-
-
+drtv-dl is a powerful tool for downloading videos from [DRTV](https://dr.dk/drtv), including encrypted content.
 
 ## Installation
 
-To install drtv-dl, run this:
-   ```
-   pip install git+https://github.com/444995/drtv-dl.git
-   ```
-And make sure you have ffmpeg installed on your system.
+To install drtv-dl, run:
+
+```
+pip install git+https://github.com/444995/drtv-dl.git
+```
+
+Make sure you have ffmpeg installed on your system.
 
 ## Usage
 
-- From the command line:
+### CLI
+
+Basic usage:
 
 ```
 drtv-dl [URL] [OPTIONS]
 ```
 
-- As a Python module:
+Example with ntmpl (also works when using it as a Python module):
+
+```
+drtv-dl https://www.dr.dk/drtv/serie/den-tid-paa-ugen_473629 \
+           --ntmpl "{title} S{season_number}E{episode_number} - {episode_name} [{id}]"
+```
+
+This will download the following files:
+- "Den tid på ugen S01E01 - Trusselsbreve og chips i hjernen [00252412010].mp4"
+- "Den tid på ugen S01E02 - Oktoberfest og den stjålne Picasso [00252412020].mp4"
+- "Den tid på ugen S01E03 - Taliban og Svend Svingarm [00252412030].mp4"
+
+### Python Module
 
 ```python
 import drtv_dl    
@@ -32,16 +46,13 @@ drtv_dl.download(
 )
 ```
 
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-
 ## License
 
 This project is licensed under the MIT License.
-
 
 ## Disclaimer
 
