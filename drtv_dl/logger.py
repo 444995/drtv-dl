@@ -9,7 +9,7 @@ class DRTVDLCustomFormatter(logging.Formatter):
 def setup_logger():
     logger = logging.getLogger('drtv_dl')
     logger.setLevel(logging.INFO)
-    formatter = DRTVDLCustomFormatter('[%(module_class)s] - %(levelname)s - %(message)s')
+    formatter = DRTVDLCustomFormatter('[%(module_class)s] - %(message)s')
     
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)

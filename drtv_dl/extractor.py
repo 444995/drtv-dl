@@ -3,6 +3,7 @@
 import requests
 import uuid
 import json
+from drtv_dl.exceptions import TokenRetrievalError, ItemIDExtractionError, SeasonIDExtractionError, SeriesIDExtractionError
 from drtv_dl.logger import logger
 from drtv_dl.utils.helpers import download_webpage, extract_ids_from_url, print_to_screen
 from urllib.parse import urljoin
@@ -42,7 +43,7 @@ class InfoExtractor:
         self._TOKEN = next((entry['value'] for entry in anon_token_json if entry['type'] == 'UserAccount'), None)
         if not self._TOKEN:
             logger.error("Failed to retrieve anonymous token")
-            raise Exception("Couldn't retrieve anonymous token")
+            raise TokenRetrievalError("Couldn't retrieve anonymous token")
         else:
             logger.debug("Anonymous token acquired successfully")
 
@@ -50,8 +51,7 @@ class InfoExtractor:
         _, item_id = extract_ids_from_url(url)
         print_to_screen(f"Extracting information from: {item_id}")
         if not item_id:
-            logger.error("Could not extract item ID from URL")
-            raise Exception("Could not extract item ID from URL")
+            raise ItemIDExtractionError("Could not extract item ID from URL")
 
         print_to_screen(f"{item_id}: Downloading item JSON metadata")
         item = json.loads(download_webpage(
@@ -127,7 +127,7 @@ class SeasonInfoExtractor:
         print_to_screen(f"Extracting season information from: {display_id}_{season_id}")
         if not season_id:
             logger.error("Could not extract season ID from URL")
-            raise Exception("Could not extract season ID from URL")
+            raise SeasonIDExtractionError("Could not extract season ID from URL")
 
         print_to_screen(f"{season_id}: Downloading season JSON metadata")
         season_data = json.loads(download_webpage(
@@ -171,7 +171,7 @@ class SeriesInfoExtractor:
         print_to_screen(f"Extracting series information from: {display_id}_{series_id}")
         if not series_id:
             logger.error("Could not extract series ID from URL")
-            raise Exception("Could not extract series ID from URL")
+            raise SeriesIDExtractionError("Could not extract series ID from URL")
 
         print_to_screen(f"{series_id}: Downloading series JSON metadata")
         series_data = json.loads(download_webpage(

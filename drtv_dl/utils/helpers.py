@@ -2,23 +2,23 @@ import re
 import inspect
 import logging
 import requests
-import sys
-
+import os
 from drtv_dl.logger import logger
-from drtv_dl.exceptions import DownloadError
+from drtv_dl.exceptions import (
+    DownloadError,
+    StreamNotFoundError
+)
+from drtv_dl.utils import settings
 
-SUPPRESS_OUTPUT = False
-
-def set_suppress_output(suppress):
-    global SUPPRESS_OUTPUT
-    SUPPRESS_OUTPUT = suppress
 
 def is_valid_drtv_url(url):
     pattern = r'^https://www\.dr\.dk/drtv/(se|saeson|serie|program)/[a-zA-Z0-9\-_]+_\d+$'
     return bool(re.match(pattern, url))
 
 def print_to_screen(message, level='info'):
-    if SUPPRESS_OUTPUT:
+    if settings.SUPPRESS_OUTPUT:
+        return
+    if not message:
         return
     frame = inspect.currentframe().f_back
     module = inspect.getmodule(frame)
@@ -36,50 +36,6 @@ def print_to_screen(message, level='info'):
     log_level = getattr(logging, level.upper(), logging.INFO)
     logger.log(log_level, message, extra={'module_class': identifier})
 
-
-def download_file(url, filename):
-    print_to_screen(f"Destination: {filename}")
-    response = requests.get(url, stream=True)
-    response.raise_for_status()
-    
-    initial_size = int(response.headers.get('content-length', 0))
-    progress_tracker = ProgressTracker(initial_size, filename)
-    
-    with open(filename, 'wb') as file:
-        for chunk in response.iter_content(chunk_size=8192):
-            size = file.write(chunk)
-            progress_tracker.update(size)
-    
-    progress_tracker.finish()
-
-class ProgressTracker:
-    def __init__(self, initial_size, filename):
-        self.total_size = initial_size
-        self.downloaded = 0
-        self.filename = filename
-
-    def get_appropriate_unit(self, size):
-        if size < 1024 * 1024:
-            return 'KB', 1024
-        elif size < 1024 * 1024 * 1024:
-            return 'MB', 1024 * 1024
-        else:
-            return 'GB', 1024 * 1024 * 1024
-
-    def update(self, chunk_size):
-        self.downloaded += chunk_size
-        if self.downloaded > self.total_size:
-            self.total_size = self.downloaded
-        unit, divisor = self.get_appropriate_unit(self.total_size)
-        downloaded_unit = self.downloaded / divisor
-        total_unit = self.total_size / divisor
-        percentage_done = (downloaded_unit / total_unit) * 100
-        if not SUPPRESS_OUTPUT:
-            print(f'\r {" " * 2}~ {downloaded_unit:.2f}/{total_unit:.2f} {unit} - {percentage_done:.2f}%', end='', file=sys.stderr, flush=True)
-
-    def finish(self):
-        if not SUPPRESS_OUTPUT:
-            print(file=sys.stderr)
 
 def download_webpage(url, headers=None, data=None, params=None, json=None):
     logger.debug(f"Requesting URL: {url}")
@@ -100,8 +56,7 @@ def extract_ids_from_url(url):
     if '_' in last_part:
         display_id, item_id = last_part.rsplit('_', 1)
     else:
-        display_id = last_part
-        item_id = None
+        raise ValueError("Invalid URL format")
     logger.debug(f"Extracted display_id: {display_id}, item_id: {item_id}")
     return display_id, item_id
 
@@ -119,7 +74,37 @@ def vtt_to_srt(vtt_file, srt_file):
             srt.write(f"{i}\n{line}\n\n")
     print_to_screen(f"Converted {vtt_file} to {srt_file}")
 
+def get_optimal_stream(parsed_m3u8_streams, desired_resolution):
+        optimal_stream = {
+            'video': None,
+            'audio': None,
+            'subtitle': None
+        }
 
+        if parsed_m3u8_streams['subtitles']:
+            optimal_stream['subtitle'] = parsed_m3u8_streams['subtitles'][-1]
+        
+        if optimal_stream['subtitle'] is None:
+            raise StreamNotFoundError("No subtitles stream found")
+
+        for stream in parsed_m3u8_streams['video']:
+            if stream['resolution'].split('x')[1] == desired_resolution.replace('p', ''):
+                optimal_stream['video'] = stream
+                break
+
+        if optimal_stream['video'] is None:
+            raise StreamNotFoundError(f"No video stream found for resolution {desired_resolution}")
+        
+        audio_group = optimal_stream['video']['audio']
+        for audio_stream in parsed_m3u8_streams['audio']:
+            if audio_stream['group-id'] == audio_group:
+                optimal_stream['audio'] = audio_stream
+                break
+
+        if optimal_stream['audio'] is None:
+            raise StreamNotFoundError(f"No audio stream found for group {audio_group}")
+
+        return optimal_stream
 
 def get_optimal_format(formats):
     if not formats:
@@ -173,3 +158,13 @@ def generate_filename(info):
         filename = f"{title} [{id_}]"
 
     return sanitize_filename(filename)
+
+def delete_files(*file_paths):
+    for file_path in file_paths:
+        if not file_path:
+            continue
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except OSError as e:
+            logger.error(f"Error deleting {file_path}: {e}")
