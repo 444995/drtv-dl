@@ -21,10 +21,10 @@ class ProgressTracker:
             self.total_size = self.downloaded
         unit, divisor = self.get_appropriate_unit(self.total_size)
         downloaded_unit = self.downloaded / divisor
-        total_unit = "?" if self.total_size is None else self.total_size / divisor
-        percentage_done = (downloaded_unit / total_unit) * 100 if self.total_size is not None else 0
+        total_unit = self.total_size / divisor
+        percentage_done = (downloaded_unit / total_unit) * 100
         if not settings.SUPPRESS_OUTPUT:
-            print(f'\r {" " * 2}~ {downloaded_unit:.2f}/{total_unit if isinstance(total_unit, str) else total_unit:.2f} {unit} - {percentage_done:.2f}%', end='', file=sys.stderr, flush=True)
+            print(f'\r {" " * 2}~ {downloaded_unit:.2f}/{total_unit:.2f} {unit} - {percentage_done:.2f}%', end='', file=sys.stderr, flush=True)
 
     def finish(self):
         if not settings.SUPPRESS_OUTPUT:
