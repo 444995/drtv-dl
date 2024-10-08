@@ -1,6 +1,6 @@
 from drtv_dl.downloader import DRTVDownloader
 from drtv_dl.exceptions import InvalidURLError
-from drtv_dl.utils.settings import set_suppress_output
+from drtv_dl.utils.settings import set_suppress_output, set_proxy
 from drtv_dl.extractor import (
     InfoExtractor, 
     SeasonInfoExtractor, 
@@ -11,11 +11,13 @@ from drtv_dl.utils.helpers import (
     is_valid_drtv_url,
 )
 
-def download(url, resolution="360p", include_subs=False, ntmpl=None, list_formats=False, suppress_output=False):
+def download(url, resolution="360p", include_subs=False, ntmpl=None, proxy=None, list_formats=False, suppress_output=False):
     if not is_valid_drtv_url(url):
         raise InvalidURLError("URL was not found to be valid")
     
     set_suppress_output(suppress_output)
+    if proxy:
+        set_proxy(proxy)
 
     print_to_screen(f"Processing URL: {url}")
     ie = InfoExtractor()

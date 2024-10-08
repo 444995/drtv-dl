@@ -6,7 +6,6 @@ setup(
     packages=find_packages(),
     install_requires=[
         "requests>=2.25.1",
-        "tqdm>=4.59.0",
         "ffmpeg-python",
     ],
     entry_points={

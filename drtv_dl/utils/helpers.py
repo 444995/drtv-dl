@@ -6,11 +6,11 @@ import logging
 import requests
 
 from drtv_dl.logger import logger
+from drtv_dl.utils import settings
 from drtv_dl.exceptions import (
     DownloadError,
-    StreamNotFoundError
+    StreamNotFoundError,
 )
-from drtv_dl.utils import settings
 
 
 def is_valid_drtv_url(url):
@@ -41,12 +41,9 @@ def print_to_screen(message, level='info'):
 def search_content(pattern, text, group_num=1):
     if isinstance(pattern, str):
         pattern = re.compile(pattern, re.DOTALL)
-
     match = pattern.search(text)
-    
     if not match:
         return None
-
     try:
         return html.unescape(match.group(group_num))
     except IndexError:
@@ -60,6 +57,7 @@ def download_webpage(url, headers=None, data=None, params=None, json=None):
         data=data,
         params=params,
         json=json,
+        proxies=settings.PROXY
     )
     response.raise_for_status()
     logger.debug(f"Received response from {url}")

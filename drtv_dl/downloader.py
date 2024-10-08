@@ -3,6 +3,7 @@ import requests
 
 from drtv_dl.logger import logger
 from drtv_dl.utils.merger import Merger
+from drtv_dl.utils import settings
 from drtv_dl.utils.m3u8_parser import M3U8Parser
 from drtv_dl.utils.progress_tracker import ProgressTracker
 from drtv_dl.utils.helpers import (
@@ -22,6 +23,8 @@ from drtv_dl.exceptions import (
 
 class DRTVDownloader:
     def download(self, info, list_formats, resolution, include_subs, ntmpl):
+        base_filename = generate_filename(info, ntmpl)
+
         stream_url = get_optimal_format(info.get('formats', [])).get('url')
         m3u8_streams = self._download_m3u8_manifest(stream_url)
         parsed_m3u8_streams = M3U8Parser(stream_url, m3u8_streams).parse()
@@ -30,11 +33,13 @@ class DRTVDownloader:
             print_formats(parsed_m3u8_streams)
             return
 
-        optimal_stream = get_optimal_stream(parsed_m3u8_streams, resolution)
         
-        base_filename = generate_filename(info, ntmpl)
-        video_filename = self._download_stream(optimal_stream['video'], base_filename, 'video')
-        audio_filename = self._download_stream(optimal_stream['audio'], base_filename, 'audio')
+        if self._check_if_downloaded(base_filename):
+            return
+
+        optimal_stream = get_optimal_stream(parsed_m3u8_streams, resolution)
+        video_filename = self._download_stream(optimal_stream['video'], base_filename, stream_type='video')
+        audio_filename = self._download_stream(optimal_stream['audio'], base_filename, stream_type='audio')
         subtitle_filename = self._download_subtitle(optimal_stream, base_filename, include_subs)
 
         self._merge_streams(info, video_filename, audio_filename, subtitle_filename, base_filename)
@@ -63,7 +68,7 @@ class DRTVDownloader:
             return srt_filename
         
         return None
-
+    
     @staticmethod
     def _download_m3u8_manifest(stream_url):
         print_to_screen(f"Downloading m3u8 manifest...")
@@ -72,8 +77,15 @@ class DRTVDownloader:
         )
 
     @staticmethod
+    def _check_if_downloaded(base_filename):
+        if os.path.exists(base_filename + ".mp4"):
+            print_to_screen(f"{base_filename} is already downloaded")
+            return True
+        return False
+
+    @staticmethod
     def _download_file(url, filename, note):
-        response = requests.get(url, stream=True)
+        response = requests.get(url, stream=True, proxies=settings.PROXY)
         response.raise_for_status()
         
         initial_size = int(response.headers.get('content-length', None))
@@ -104,6 +116,10 @@ class DRTVDownloader:
     
     @staticmethod
     def _cleanup(video_filename, audio_filename, subtitle_filename):
-        delete_files(video_filename, audio_filename, subtitle_filename)
+        delete_files(
+            video_filename, 
+            audio_filename, 
+            subtitle_filename
+        )
 
 

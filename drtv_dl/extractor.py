@@ -5,6 +5,7 @@ import json
 import requests
 from urllib.parse import urljoin
 
+from drtv_dl.utils import settings
 from drtv_dl.logger import logger
 from drtv_dl.exceptions import (
     TokenRetrievalError, 
@@ -48,6 +49,7 @@ class InfoExtractor:
                 'scopes': ['Catalog'],
                 'optout': True,
             },
+            proxies=settings.PROXY
         )
         anon_token_response.raise_for_status()
         anon_token_json = anon_token_response.json()
@@ -71,7 +73,7 @@ class InfoExtractor:
         video_id = item.get('customId', '').split(':')[-1] or item_id
 
         print_to_screen(f"{video_id}: Fetching stream data...")
-        stream_response = requests.get(
+        stream_data = json.loads(download_webpage(
             self.STREAM_API_URL.format(item_id),
             params={
                 'delivery': 'stream',
@@ -82,9 +84,7 @@ class InfoExtractor:
                 'sub': 'Anonymous',
             },
             headers={'Authorization': f'Bearer {self._TOKEN}'}
-        )
-        stream_response.raise_for_status()
-        stream_data = stream_response.json()
+        ))
 
         logger.debug(f"{video_id}: Parsing available formats")
         formats = []

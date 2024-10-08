@@ -27,3 +27,6 @@ class MergeError(DRTVDownloaderError):
 
 class StreamNotFoundError(DRTVDownloaderError):
     pass
+
+class ProxyError(DRTVDownloaderError):
+    pass

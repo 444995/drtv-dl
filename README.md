@@ -1,6 +1,6 @@
 # drtv-dl
 
-drtv-dl is a powerful tool for downloading videos from [DRTV](https://dr.dk/drtv), including encrypted content.
+drtv-dl is a tool for downloading videos from [DRTV](https://dr.dk/drtv), including encrypted content.
 
 ## Installation
 
