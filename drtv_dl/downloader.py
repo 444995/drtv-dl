@@ -32,12 +32,11 @@ class DRTVDownloader:
         if list_formats:
             print_formats(parsed_m3u8_streams)
             return
-
         
         if self._check_if_downloaded(base_filename):
             return
 
-        optimal_stream = get_optimal_stream(parsed_m3u8_streams, resolution)
+        optimal_stream = get_optimal_stream(parsed_m3u8_streams, resolution, include_subs)
         video_filename = self._download_stream(optimal_stream['video'], base_filename, stream_type='video')
         audio_filename = self._download_stream(optimal_stream['audio'], base_filename, stream_type='audio')
         subtitle_filename = self._download_subtitle(optimal_stream, base_filename, include_subs)

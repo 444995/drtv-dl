@@ -17,19 +17,17 @@ def parse_args():
     args = parser.parse_args()
 
     logger.setLevel(args.log_level.upper())
-    try:
-        download(
-            url=args.url, 
-            resolution=args.resolution,
-            include_subs=args.include_subs,
-            ntmpl=args.ntmpl,
-            proxy=args.proxy,
-            list_formats=args.list_formats,
-            suppress_output=args.suppress_output
-        )
-    except DRTVDownloaderError as e:
-        logger.error(f"An error occurred: {e}")
-        exit(1)
+    
+    download(
+        url=args.url, 
+        resolution=args.resolution,
+        include_subs=args.include_subs,
+        ntmpl=args.ntmpl,
+        proxy=args.proxy,
+        list_formats=args.list_formats,
+        suppress_output=args.suppress_output
+    )
+
 
 if __name__ == "__main__":
     parse_args()

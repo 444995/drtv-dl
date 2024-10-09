@@ -86,18 +86,19 @@ def vtt_to_srt(vtt_file, srt_file):
         for i, line in enumerate(lines, start=1):
             srt.write(f"{i}\n{line}\n\n")
 
-def get_optimal_stream(parsed_m3u8_streams, desired_resolution):
+def get_optimal_stream(parsed_m3u8_streams, desired_resolution, include_subs):
         optimal_stream = {
             'video': None,
             'audio': None,
             'subtitle': None
         }
 
-        if parsed_m3u8_streams['subtitles']:
-            optimal_stream['subtitle'] = parsed_m3u8_streams['subtitles'][-1]
-        
-        if optimal_stream['subtitle'] is None:
-            raise StreamNotFoundError("No subtitles stream found")
+        if include_subs:
+            subtitles = parsed_m3u8_streams.get('subtitles', None)
+            if subtitles:
+                optimal_stream['subtitle'] = subtitles[-1]
+            else:
+                raise StreamNotFoundError("No subtitles stream found")
 
         for stream in parsed_m3u8_streams['video']:
             if stream['resolution'].split('x')[1] == desired_resolution.replace('p', ''):
@@ -139,10 +140,10 @@ def print_formats(formats):
         for item in formats.get(category, []):
             if category == 'audio':
                 row = [f"audio_{item['group-id']}-{item['name']}-{item['language']}", ext, "n/a", "audio only", 
-                       "unknown", "unknown", "audio only", f"[{item['language']}] {item['name']}", "m3u8"]
+                       "n/a", "n/a", "audio only", f"[{item['language']}] {item['name']}", "m3u8"]
             elif category == 'subtitles':
                 row = [f"subs_{item['name']}-{item['language']}", ext, "n/a", "subtitles", 
-                       "unknown", "unknown", "sub only", f"[{item['language']}] {item['name']}", "m3u8"]
+                       "n/a", "n/a", "sub only", f"[{item['language']}] {item['name']}", "m3u8"]
             else:  # video
                 row = [f"video_{item['bandwidth']}", ext, item['frame-rate'], item['resolution'], 
                        f"{int(item['bandwidth']) // 1000}k", f"{int(item['average-bandwidth']) // 1000}k", 

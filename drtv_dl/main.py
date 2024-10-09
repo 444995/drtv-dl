@@ -15,7 +15,8 @@ def download(url, resolution="360p", include_subs=False, ntmpl=None, proxy=None,
     if not is_valid_drtv_url(url):
         raise InvalidURLError("URL was not found to be valid")
     
-    set_suppress_output(suppress_output)
+    if suppress_output:
+        set_suppress_output(suppress_output)
     if proxy:
         set_proxy(proxy)
 

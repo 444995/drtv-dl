@@ -3,12 +3,14 @@ from drtv_dl.utils import settings
 
 import time
 
+
 class ProgressTracker:
     def __init__(self, initial_size, filename):
         self.total_size = initial_size
         self.downloaded = 0
         self.filename = filename
         self.start_time = time.time()
+        self.longest_line = 0
 
     def get_appropriate_unit(self, size):
         if size < 1024 * 1024:
@@ -30,10 +32,12 @@ class ProgressTracker:
         
         elapsed_time = time.time() - self.start_time
         if elapsed_time > 0:
-            speed = self.downloaded / (elapsed_time * 1024 * 1024)
+            dlspeed = self.downloaded / (elapsed_time * 1024 * 1024)
             percentage_done = (downloaded_unit / total_unit) * 100 if total_unit > 0 else 0
-            
-            print(f'\r {" " * 2}~ {downloaded_unit:.2f}/{total_unit:.2f} {unit} at {speed:.2f} MB/s - {percentage_done:.2f}%', end='', file=sys.stderr, flush=True)
+            progress_line = f'\r {" " * 2}~ {downloaded_unit:.2f}/{total_unit:.2f} {unit} at {dlspeed:.2f} MB/s - {percentage_done:.2f}%'
+            padded_line = progress_line.ljust(self.longest_line)
+            self.longest_line = max(self.longest_line, len(progress_line))
+            print(padded_line, end='', file=sys.stderr, flush=True)
 
     def finish(self):
         if not settings.SUPPRESS_OUTPUT:
